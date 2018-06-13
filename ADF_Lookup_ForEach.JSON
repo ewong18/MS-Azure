@@ -1,0 +1,93 @@
+{
+    "name": "Move_Land_to_Report",
+    "properties": {
+        "activities": [
+            {
+                "name": "Lkp_Dim",
+                "type": "Lookup",
+                "policy": {
+                    "timeout": "7.00:00:00",
+                    "retry": 0,
+                    "retryIntervalInSeconds": 30,
+                    "secureOutput": false
+                },
+                "typeProperties": {
+                    "source": {
+                        "type": "BlobSource",
+                        "recursive": true
+                    },
+                    "dataset": {
+                        "referenceName": "Dim_BLB_LKP",
+                        "type": "DatasetReference"
+                    },
+                    "firstRowOnly": false
+                }
+            },
+            {
+                "name": "ForEach",
+                "type": "ForEach",
+                "dependsOn": [
+                    {
+                        "activity": "Lkp_Dim",
+                        "dependencyConditions": [
+                            "Succeeded"
+                        ]
+                    }
+                ],
+                "typeProperties": {
+                    "items": {
+                        "value": "@activity('Lkp_Dim').output.value",
+                        "type": "Expression"
+                    },
+                    "isSequential": false,
+                    "batchCount": 4,
+                    "activities": [
+                        {
+                            "name": "Copy1",
+                            "type": "Copy",
+                            "policy": {
+                                "timeout": "7.00:00:00",
+                                "retry": 0,
+                                "retryIntervalInSeconds": 30,
+                                "secureOutput": false
+                            },
+                            "typeProperties": {
+                                "source": {
+                                    "type": "AzureDataLakeStoreSource",
+                                    "recursive": true
+                                },
+                                "sink": {
+                                    "type": "AzureDataLakeStoreSink"
+                                },
+                                "enableStaging": false,
+                                "cloudDataMovementUnits": 0
+                            },
+                            "inputs": [
+                                {
+                                    "referenceName": "Dim_Ref_ADLS_LAND",
+                                    "type": "DatasetReference",
+                                    "parameters": {
+                                        "fileDir": "@concat('dir1/land/',item().tableName)",
+                                        "fileName": "@concat(item().tableName,'.orc')"
+                                    }
+                                }
+                            ],
+                            "outputs": [
+                                {
+                                    "referenceName": "Dim_Ref_ADLS_REPORT",
+                                    "type": "DatasetReference",
+                                    "parameters": {
+                                        "filePath": "@concat('dir1/report',item().tableName)",
+                                        "fileName": "@concat(item().tableName,'.orc')"
+                                    }
+                                }
+                            ]
+                        }
+                    ]
+                }
+            }
+        ],
+       
+        }
+    }
+}
