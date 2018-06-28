@@ -1,0 +1,181 @@
+{
+    "name": "Iter_Directories",
+    "properties": {
+        "activities": [
+            {
+                "name": "Create Week Lkp",
+                "type": "Copy",
+                "policy": {
+                    "timeout": "7.00:00:00",
+                    "retry": 0,
+                    "retryIntervalInSeconds": 30,
+                    "secureOutput": false
+                },
+                "typeProperties": {
+                    "source": {
+                        "type": "RelationalSource",
+                        "query": "select top 2 dspn_wk_id from \"DB Name\".\"Table Name\"  group by 1"
+                    },
+                    "sink": {
+                        "type": "BlobSink"
+                    },
+                    "enableStaging": false,
+                    "dataIntegrationUnits": 0,
+                    "translator": {
+                        "type": "TabularTranslator",
+                        "columnMappings": "DSPN_WK_ID: Prop_0"
+                    }
+                },
+                "inputs": [
+                    {
+                        "referenceName": "RTL_WK_RAW_HIST_TD_SRC",
+                        "type": "DatasetReference"
+                    }
+                ],
+                "outputs": [
+                    {
+                        "referenceName": "RTL_WK_Lkp_BLOB",
+                        "type": "DatasetReference"
+                    }
+                ]
+            },
+            {
+                "name": "Week Lkp",
+                "type": "Lookup",
+                "dependsOn": [
+                    {
+                        "activity": "Create Week Lkp",
+                        "dependencyConditions": [
+                            "Succeeded"
+                        ]
+                    }
+                ],
+                "policy": {
+                    "timeout": "7.00:00:00",
+                    "retry": 0,
+                    "retryIntervalInSeconds": 30,
+                    "secureOutput": false
+                },
+                "typeProperties": {
+                    "source": {
+                        "type": "BlobSource",
+                        "recursive": true
+                    },
+                    "dataset": {
+                        "referenceName": "RTL_WK_Lkp_BLOB",
+                        "type": "DatasetReference"
+                    },
+                    "firstRowOnly": false
+                }
+            },
+            {
+                "name": "ForEach Week",
+                "type": "ForEach",
+                "dependsOn": [
+                    {
+                        "activity": "Week Lkp",
+                        "dependencyConditions": [
+                            "Succeeded"
+                        ]
+                    }
+                ],
+                "typeProperties": {
+                    "items": {
+                        "value": "@activity('Week Lkp').output.value",
+                        "type": "Expression"
+                    },
+                    "activities": [
+                        {
+                            "name": "Copy CURR",
+                            "type": "Copy",
+                            "policy": {
+                                "timeout": "7.00:00:00",
+                                "retry": 0,
+                                "retryIntervalInSeconds": 30,
+                                "secureOutput": false
+                            },
+                            "typeProperties": {
+                                "source": {
+                                    "type": "FileSystemSource",
+                                    "recursive": true
+                                },
+                                "sink": {
+                                    "type": "AzureDataLakeStoreSink"
+                                },
+                                "enableStaging": false,
+                                "enableSkipIncompatibleRow": true,
+                                "dataIntegrationUnits": 0
+                            },
+                            "inputs": [
+                                {
+                                    "referenceName": "RTL_WK_CURR_Ref_SRC",
+                                    "type": "DatasetReference",
+                                    "parameters": {
+                                        "debug": "20160429",
+                                        "lkpdt": "@item().Prop_0"
+                                    }
+                                }
+                            ],
+                            "outputs": [
+                                {
+                                    "referenceName": "RTL_WK_Ref_ADLS_LAND",
+                                    "type": "DatasetReference",
+                                    "parameters": {
+                                        "debug": "20160429",
+                                        "lkpdt": "@item().Prop_0"
+                                    }
+                                }
+                            ]
+                        },
+                        {
+                            "name": "Copy PROD",
+                            "type": "Copy",
+                            "policy": {
+                                "timeout": "7.00:00:00",
+                                "retry": 0,
+                                "retryIntervalInSeconds": 30,
+                                "secureOutput": false
+                            },
+                            "typeProperties": {
+                                "source": {
+                                    "type": "FileSystemSource",
+                                    "recursive": true
+                                },
+                                "sink": {
+                                    "type": "AzureDataLakeStoreSink"
+                                },
+                                "enableStaging": false,
+                                "enableSkipIncompatibleRow": true,
+                                "dataIntegrationUnits": 0
+                            },
+                            "inputs": [
+                                {
+                                    "referenceName": "RTL_WK_PROD_Ref_SRC",
+                                    "type": "DatasetReference",
+                                    "parameters": {
+                                        "debug": "20160429",
+                                        "lkpdt": "@item().Prop_0"
+                                    }
+                                }
+                            ],
+                            "outputs": [
+                                {
+                                    "referenceName": "RTL_WK_Ref_ADLS_LAND",
+                                    "type": "DatasetReference",
+                                    "parameters": {
+                                        "debug": "20160429",
+                                        "lkpdt": "@item().Prop_0"
+                                    }
+                                }
+                            ]
+                        }
+                    ]
+                }
+            }
+        ],
+        "folder": {
+            "name": "EW-Examples"
+        }
+    },
+    "type": "Microsoft.DataFactory/factories/pipelines"
+}
