@@ -1,0 +1,134 @@
+{
+    "name": "Do-Until Test for Files",
+    "properties": {
+        "description": "Check for arrival of updated tables",
+        "activities": [
+            {
+                "name": "Chk_New_File_Landed",
+                "type": "Until",
+                "dependsOn": [
+                    {
+                        "activity": "Lkp_Target_Date",
+                        "dependencyConditions": [
+                            "Succeeded"
+                        ]
+                    }
+                ],
+                "typeProperties": {
+                    "expression": {
+                        "value": "@and(activity('Get Metadata1').output.exists, startswith(activity('Get Metadata1').output.lastModified, activity('Lkp_Target_date').output.firstRow.Prop_0))",
+                        "type": "Expression"
+                    },
+                    "activities": [
+                        {
+                            "name": "Wait1",
+                            "type": "Wait",
+                            "typeProperties": {
+                                "waitTimeInSeconds": 20
+                            }
+                        },
+                        {
+                            "name": "Lkp_Handshake",
+                            "type": "Lookup",
+                            "dependsOn": [
+                                {
+                                    "activity": "Get Metadata1",
+                                    "dependencyConditions": [
+                                        "Succeeded"
+                                    ]
+                                }
+                            ],
+                            "policy": {
+                                "timeout": "7.00:00:00",
+                                "retry": 0,
+                                "retryIntervalInSeconds": 30,
+                                "secureOutput": false
+                            },
+                            "typeProperties": {
+                                "source": {
+                                    "type": "BlobSource",
+                                    "recursive": true
+                                },
+                                "dataset": {
+                                    "referenceName": "DES_Min_Rfrsh_Dt_BLOB",
+                                    "type": "DatasetReference"
+                                }
+                            }
+                        },
+                        {
+                            "name": "Get Metadata1",
+                            "type": "GetMetadata",
+                            "dependsOn": [
+                                {
+                                    "activity": "Wait1",
+                                    "dependencyConditions": [
+                                        "Succeeded"
+                                    ]
+                                }
+                            ],
+                            "policy": {
+                                "timeout": "7.00:00:00",
+                                "retry": 0,
+                                "retryIntervalInSeconds": 30,
+                                "secureOutput": false
+                            },
+                            "typeProperties": {
+                                "dataset": {
+                                    "referenceName": "TST_Vendor_Drop_File",
+                                    "type": "DatasetReference"
+                                },
+                                "fieldList": [
+                                    "exists",
+                                    "lastModified"
+                                ]
+                            }
+                        }
+                    ],
+                    "timeout": "7.00:00:00"
+                }
+            },
+            {
+                "name": "Lkp_Target_Date",
+                "type": "Lookup",
+                "policy": {
+                    "timeout": "7.00:00:00",
+                    "retry": 0,
+                    "retryIntervalInSeconds": 30,
+                    "secureOutput": false
+                },
+                "typeProperties": {
+                    "source": {
+                        "type": "BlobSource",
+                        "recursive": true
+                    },
+                    "dataset": {
+                        "referenceName": "DES_Target_Dt_Lkp",
+                        "type": "DatasetReference"
+                    }
+                }
+            },
+            {
+                "name": "Exc_DES_Daily_Refresh",
+                "type": "ExecutePipeline",
+                "dependsOn": [
+                    {
+                        "activity": "Chk_New_File_Landed",
+                        "dependencyConditions": [
+                            "Succeeded"
+                        ]
+                    }
+                ],
+                "typeProperties": {
+                    "pipeline": {
+                        "referenceName": "DES_Daily_Refresh",
+                        "type": "PipelineReference"
+                    }
+                }
+            }
+        ],
+        "folder": {
+            "name": "EW-Examples"
+        }
+    },
+    "type": "Microsoft.DataFactory/factories/pipelines"
+}
