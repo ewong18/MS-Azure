@@ -1,0 +1,165 @@
+{
+    "name": "Do-Until Test for Rltnl DB",
+    "properties": {
+        "description": "Check for arrival of updated tables",
+        "activities": [
+            {
+                "name": "Do-Until",
+                "type": "Until",
+                "dependsOn": [
+                    {
+                        "activity": "Lkp_Target_Date",
+                        "dependencyConditions": [
+                            "Succeeded"
+                        ]
+                    }
+                ],
+                "typeProperties": {
+                    "expression": {
+                        "value": "@startswith(activity('Lkp_Handshake').output.firstRow.Prop_0, activity('Lkp_Target_Date').output.firstRow.Prop_0)",
+                        "type": "Expression"
+                    },
+                    "activities": [
+                        {
+                            "name": "Wait1",
+                            "type": "Wait",
+                            "typeProperties": {
+                                "waitTimeInSeconds": 20
+                            }
+                        },
+                        {
+                            "name": "Lkp_Handshake",
+                            "type": "Lookup",
+                            "dependsOn": [
+                                {
+                                    "activity": "Get_Min_Refresh_Date",
+                                    "dependencyConditions": [
+                                        "Succeeded"
+                                    ]
+                                }
+                            ],
+                            "policy": {
+                                "timeout": "7.00:00:00",
+                                "retry": 0,
+                                "retryIntervalInSeconds": 30,
+                                "secureOutput": false
+                            },
+                            "typeProperties": {
+                                "source": {
+                                    "type": "BlobSource",
+                                    "recursive": true
+                                },
+                                "dataset": {
+                                    "referenceName": "DES_Min_Rfrsh_Dt_BLOB",
+                                    "type": "DatasetReference"
+                                }
+                            }
+                        },
+                        {
+                            "name": "Get_Min_Refresh_Date",
+                            "type": "Copy",
+                            "dependsOn": [
+                                {
+                                    "activity": "Wait1",
+                                    "dependencyConditions": [
+                                        "Succeeded"
+                                    ]
+                                }
+                            ],
+                            "policy": {
+                                "timeout": "7.00:00:00",
+                                "retry": 0,
+                                "retryIntervalInSeconds": 30,
+                                "secureOutput": false
+                            },
+                            "typeProperties": {
+                                "source": {
+                                    "type": "RelationalSource",
+                                    "query": "select min(LAST_RFRSH_DT) from \"USP_DES_PURSUIT_VW\".\"EDW_OBJ_RFRSH\" where EDW_REF_FRQ = 'Monthly'"
+                                },
+                                "sink": {
+                                    "type": "BlobSink"
+                                },
+                                "enableStaging": false,
+                                "dataIntegrationUnits": 0
+                            },
+                            "inputs": [
+                                {
+                                    "referenceName": "DES_EDW_OBJ_RFRSH_Lkp",
+                                    "type": "DatasetReference"
+                                }
+                            ],
+                            "outputs": [
+                                {
+                                    "referenceName": "DES_Min_Rfrsh_Dt_BLOB",
+                                    "type": "DatasetReference"
+                                }
+                            ]
+                        }
+                    ],
+                    "timeout": "7.00:00:00"
+                }
+            },
+            {
+                "name": "Lkp_Target_Date",
+                "type": "Lookup",
+                "policy": {
+                    "timeout": "7.00:00:00",
+                    "retry": 0,
+                    "retryIntervalInSeconds": 30,
+                    "secureOutput": false
+                },
+                "typeProperties": {
+                    "source": {
+                        "type": "BlobSource",
+                        "recursive": true
+                    },
+                    "dataset": {
+                        "referenceName": "DES_Target_Dt_Lkp",
+                        "type": "DatasetReference"
+                    }
+                }
+            },
+            {
+                "name": "Exc_DES_Daily_Refresh",
+                "type": "ExecutePipeline",
+                "dependsOn": [
+                    {
+                        "activity": "Do-Until",
+                        "dependencyConditions": [
+                            "Succeeded"
+                        ]
+                    }
+                ],
+                "typeProperties": {
+                    "pipeline": {
+                        "referenceName": "DES_Daily_Refresh",
+                        "type": "PipelineReference"
+                    }
+                }
+            },
+            {
+                "name": "Exc_DES_Daily_ADLS_LAND_to_REPORT",
+                "type": "ExecutePipeline",
+                "dependsOn": [
+                    {
+                        "activity": "Exc_DES_Daily_Refresh",
+                        "dependencyConditions": [
+                            "Succeeded"
+                        ]
+                    }
+                ],
+                "typeProperties": {
+                    "pipeline": {
+                        "referenceName": "DES_Daily_ADLS_LAND_TO_REPORT",
+                        "type": "PipelineReference"
+                    }
+                }
+            }
+        ],
+        "folder": {
+            "name": "EW-Examples"
+        }
+    },
+    "type": "Microsoft.DataFactory/factories/pipelines"
+}
