@@ -5,7 +5,7 @@
             "storageAccountName": {
                 "type": "string"
             },
-			      "accessKeySecretName": {
+	    "accessKeySecretName": {
                 "type": "string"
             }
         },
