@@ -1,0 +1,31 @@
+{
+    "name": "LS_Blob_Parameterized",
+    "properties": {
+        "parameters": {
+            "storageAccountName": {
+                "type": "string"
+            },
+			      "accessKeySecretName": {
+                "type": "string"
+            }
+        },
+        "annotations": [],
+        "type": "AzureBlobFS",
+        "typeProperties": {
+            "url": "@{concat('https://',linkedService().storageAccountName,'.dfs.core.windows.net')}",
+            "accountKey": {
+                "type": "AzureKeyVaultSecret",
+                "store": {
+                    "referenceName": "[redacted KeyVault LS Name]",
+                    "type": "LinkedServiceReference"
+                },
+                "secretName": "@{linkedService().accessKeySecretName}"
+            }
+        },
+        "connectVia": {
+            "referenceName": "[redacted IR Name]",
+            "type": "IntegrationRuntimeReference"
+        }
+    },
+    "type": "Microsoft.DataFactory/factories/linkedservices"
+}
