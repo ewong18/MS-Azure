@@ -1,0 +1,53 @@
+{
+    "name": "LS_DBX_Dynamic",
+    "type": "Microsoft.DataFactory/factories/linkedservices",
+    "properties": {
+        "description": "Dynamic Linked Service for DBX with Autoscaling: 1-6 workers",
+        "parameters": {
+            "LS_P_DBX_Token": {
+                "type": "string",
+                "defaultValue": "DBX_TOKEN_KV_SECRET"
+            },
+            "LS_P_DBR": {
+                "type": "string",
+                "defaultValue": "9.1.x-scala2.12"
+            },
+            "LS_P_Node_Type": {
+                "type": "string",
+                "defaultValue": "Standard_DS5_v2"
+            },
+            "LS_P_Num_Workers": {
+                "type": "string",
+                "defaultValue": "1:6"
+            }
+        },
+        "annotations": [],
+        "type": "AzureDatabricks",
+        "typeProperties": {
+            "domain": "https://northeurope.azuredatabricks.net",
+            "accessToken": {
+                "type": "AzureKeyVaultSecret",
+                "store": {
+                    "referenceName": "LS_KeyVault",
+                    "type": "LinkedServiceReference"
+                },
+                "secretName": {
+                    "value": "@linkedService().LS_P_DBX_Token",
+                    "type": "Expression"
+                }
+            },
+            "newClusterNodeType": "@linkedService().LS_P_Node_Type",
+            "newClusterNumOfWorker": "@linkedService().LS_P_Num_Workers",
+            "newClusterSparkEnvVars": {
+                "PYSPARK_PYTHON": "/databricks/python3/bin/python3"
+            },
+            "newClusterVersion": "@linkedService().LS_P_DBR",
+            "clusterOption": "Autoscaling",
+            "newClusterInitScripts": []
+        },
+        "connectVia": {
+            "referenceName": "SSHIR_Name",
+            "type": "IntegrationRuntimeReference"
+        }
+    }
+}
